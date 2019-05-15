@@ -51,6 +51,7 @@
         vec)))
 
 ;; when an `fk->` form is used, we should add in `:fk_field_id` info about the source Field
+;; TODO - we can remove this test
 (expect
   [(-> (Field (data/id :categories :name))
        (dissoc :database_type)
@@ -61,6 +62,20 @@
          {:query {:fields [[:fk->
                             [:field-id (data/id :venues :category_id)]
                             [:field-id (data/id :categories :name)]]]}}
+         {:columns [:name]})
+        :cols
+        vec)))
+
+;; we should get `:fk_field_id` and information where possible when using `:joined-field` clauses
+;; TODO
+(expect
+  [(-> (Field (data/id :categories :name))
+       (dissoc :database_type)
+       (assoc :fk_field_id (data/id :venues :category_id), :source :fields))]
+  (qp.store/with-store
+    (qp.store/store-field! (Field (data/id :categories :name)))
+    (-> (#'annotate/add-mbql-column-info
+         {:query {:fields [[:joined-field "CATEGORIES__via__CATEGORY_ID" (data/id :categories :name)]]}}
          {:columns [:name]})
         :cols
         vec)))
@@ -263,6 +278,11 @@
       :cols
       second))
 
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                           result-rows-maps->vectors                                            |
+;;; +----------------------------------------------------------------------------------------------------------------+
+
 ;; If a driver returns result rows as a sequence of maps, does the `result-rows-maps->vectors` convert them to a
 ;; sequence of vectors in the correct order?
 (expect
@@ -280,9 +300,9 @@
          {:database (data/id)
           :type     :query
           :query    (data/$ids [venues {:wrap-field-ids? true}]
-                      {:source-table $$table
-                       :fields       [$id $name $category_id $latitude $longitude $price]
-                       :limit        1})})))))
+                               {:source-table $$table
+                                :fields       [$id $name $category_id $latitude $longitude $price]
+                                :limit        1})})))))
 
 ;; if a driver would have returned result rows as a sequence of maps, but query returned no results, middleware should
 ;; still add `:columns` info

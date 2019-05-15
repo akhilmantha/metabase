@@ -76,9 +76,15 @@
     [:datetime-field field unit]
     (assoc (col-info-for-field-clause field) :unit unit)
 
+    ;; TODO - need to resolve `fk_field_id` somehow from the join info in the query (?)
+    [:joined-field _ field]
+    (recur field)
+
+    ;; TODO - should be able to remove this now
     [:fk-> [:field-id source-field-id] field]
     (assoc (col-info-for-field-clause field) :fk_field_id source-field-id)
 
+    ;; TODO - should be able to remove this now
     ;; for FKs where source is a :field-literal don't include `:fk_field_id`
     [:fk-> _ field]
     (recur field)
